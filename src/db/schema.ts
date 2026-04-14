@@ -26,7 +26,8 @@ export const eventsTable = pgTable("events", {
     date: varchar("date", { length: 100 }),
     status: varchar("status", { length: 20 }).notNull(),
     createdBy: varchar("created_by", { length: 100 }).references(() => usersTable.id).notNull(),
-    createdAt: varchar("created_at", { length: 100 }).notNull()
+    createdAt: varchar("created_at", { length: 100 }).notNull(),
+    adminCode: varchar("admin_code", { length: 50 }).unique()
 })
 
 export const eventMembersTable = pgTable("event_members", {
@@ -35,7 +36,7 @@ export const eventMembersTable = pgTable("event_members", {
     role: varchar("role", { length: 20 }).notNull(),
     joinedAt: varchar("joined_at", { length: 100 }).notNull()
 }, (table) => ({
-    pk: primaryKey({ columns: [table.userID, table.eventID] })
+    pk: primaryKey({ columns: [table.eventID, table.userID] })
 }))
 
 export const ticketTable = pgTable("tickets", {

@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1741022740704,
-      "tag": "0000_parallel_payback",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1741022906694,
-      "tag": "0001_nifty_mongu",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1741025413477,
-      "tag": "0002_clammy_boomerang",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1741025506365,
-      "tag": "0003_salty_magdalene",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1741025827730,
-      "tag": "0004_mysterious_cerebro",
+      "when": 1776185542567,
+      "tag": "0000_sour_redwing",
       "breakpoints": true
     }
   ]

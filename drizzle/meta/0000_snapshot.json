@@ -1,5 +1,5 @@
 {
-  "id": "c7d806a0-7c2a-4ec4-be21-8a8f0e1d2534",
+  "id": "43167ed0-1238-4e0a-9514-a45fd48c2618",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -94,6 +94,147 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.event_members": {
+      "name": "event_members",
+      "schema": "",
+      "columns": {
+        "userid": {
+          "name": "userid",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventid": {
+          "name": "eventid",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "joined_at": {
+          "name": "joined_at",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_members_userid_users_id_fk": {
+          "name": "event_members_userid_users_id_fk",
+          "tableFrom": "event_members",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userid"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "event_members_eventid_events_id_fk": {
+          "name": "event_members_eventid_events_id_fk",
+          "tableFrom": "event_members",
+          "tableTo": "events",
+          "columnsFrom": [
+            "eventid"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "event_members_userid_eventid_pk": {
+          "name": "event_members_userid_eventid_pk",
+          "columns": [
+            "userid",
+            "eventid"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(100)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "events_created_by_users_id_fk": {
+          "name": "events_created_by_users_id_fk",
+          "tableFrom": "events",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.student": {
       "name": "student",
       "schema": "",
@@ -161,39 +302,57 @@
           "primaryKey": false,
           "notNull": true
         },
-        "userID": {
-          "name": "userID",
+        "userid": {
+          "name": "userid",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventid": {
+          "name": "eventid",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adminid": {
+          "name": "adminid",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
-        "adminID": {
-          "name": "adminID",
+        "scanned_by": {
+          "name": "scanned_by",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
-        "isValid": {
-          "name": "isValid",
+        "isvalid": {
+          "name": "isvalid",
           "type": "boolean",
           "primaryKey": false,
           "notNull": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "createdat": {
+          "name": "createdat",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
+        },
+        "scanned_at": {
+          "name": "scanned_at",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "tickets_userID_student_id_fk": {
-          "name": "tickets_userID_student_id_fk",
+        "tickets_userid_student_id_fk": {
+          "name": "tickets_userid_student_id_fk",
           "tableFrom": "tickets",
           "tableTo": "student",
           "columnsFrom": [
-            "userID"
+            "userid"
           ],
           "columnsTo": [
             "id"
@@ -201,12 +360,38 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "tickets_adminID_admin_id_fk": {
-          "name": "tickets_adminID_admin_id_fk",
+        "tickets_eventid_events_id_fk": {
+          "name": "tickets_eventid_events_id_fk",
+          "tableFrom": "tickets",
+          "tableTo": "events",
+          "columnsFrom": [
+            "eventid"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tickets_adminid_admin_id_fk": {
+          "name": "tickets_adminid_admin_id_fk",
           "tableFrom": "tickets",
           "tableTo": "admin",
           "columnsFrom": [
-            "adminID"
+            "adminid"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "tickets_scanned_by_users_id_fk": {
+          "name": "tickets_scanned_by_users_id_fk",
+          "tableFrom": "tickets",
+          "tableTo": "users",
+          "columnsFrom": [
+            "scanned_by"
           ],
           "columnsTo": [
             "id"
@@ -217,11 +402,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "tickets_userID_unique": {
-          "name": "tickets_userID_unique",
+        "tickets_userid_eventid_unique": {
+          "name": "tickets_userid_eventid_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "userID"
+            "userid",
+            "eventid"
           ]
         }
       },
