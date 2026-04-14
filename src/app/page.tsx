@@ -22,9 +22,24 @@ export default function HomePage() {
     const [selectedEventTitle, setSelectedEventTitle] = useState("")
     const [events, setEvents] = useState<{ id: string; name: string; date?: string }[]>([])
     const [eventsLoading, setEventsLoading] = useState(false)
+    const [myEvents, setMyEvents] = useState<{ id: string; name: string; role: string }[]>([])
+    const [myEventsLoading, setMyEventsLoading] = useState(false)
+    const [adminCodeInput, setAdminCodeInput] = useState("")
+    const [joiningByCode, setJoiningByCode] = useState(false)
+    const [joinSuccessMessage, setJoinSuccessMessage] = useState("")
+    const [joinErrorMessage, setJoinErrorMessage] = useState("")
     const [generatingEventId, setGeneratingEventId] = useState<string | null>(null)
     const [adminSelectedEventId, setAdminSelectedEventId] = useState<string | null>(null)
     const [adminSelectedEventName, setAdminSelectedEventName] = useState("")
+    const [managerLoading, setManagerLoading] = useState(false)
+    const [managerErrorMessage, setManagerErrorMessage] = useState("")
+    const [managerEventName, setManagerEventName] = useState("")
+    const [managerData, setManagerData] = useState<{
+        adminCode: string | null;
+        totalTickets: number;
+        scannedTickets: number;
+        members: { userid: string; role: string }[];
+    } | null>(null)
 
     const [studentExists, setStudentExists] = useState<boolean | null>(null)
 
@@ -51,6 +66,94 @@ export default function HomePage() {
         } finally {
             setEventsLoading(false)
         }
+    }
+
+    const fetchMyEvents = async () => {
+        setMyEventsLoading(true)
+        try {
+            const response = await fetch("./api/events/me")
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch my events")
+            }
+
+            const data = await response.json()
+            const eventList = Array.isArray(data?.events) ? data.events : []
+            setMyEvents(eventList)
+        } catch (error) {
+            console.error("Error fetching my events:", error)
+            setMyEvents([])
+        } finally {
+            setMyEventsLoading(false)
+        }
+    }
+
+    const joinEventWithCode = async () => {
+        if (!adminCodeInput.trim()) {
+            setJoinErrorMessage("Please enter an admin code")
+            setJoinSuccessMessage("")
+            return
+        }
+
+        try {
+            setJoiningByCode(true)
+            setJoinErrorMessage("")
+            setJoinSuccessMessage("")
+
+            const response = await fetch("./api/events/join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ adminCode: adminCodeInput.trim() }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data?.error || "Failed to join event")
+            }
+
+            setJoinSuccessMessage(`Joined ${data?.name || "event"} as admin`)
+            setAdminCodeInput("")
+            await fetchMyEvents()
+        } catch (error) {
+            setJoinErrorMessage(error instanceof Error ? error.message : "Failed to join event")
+        } finally {
+            setJoiningByCode(false)
+        }
+    }
+
+    const openManagerView = async (eventId: string, eventName: string) => {
+        try {
+            setManagerLoading(true)
+            setManagerErrorMessage("")
+            setManagerData(null)
+            setManagerEventName(eventName)
+
+            const response = await fetch(`./api/events/${eventId}/manager`)
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data?.error || "Failed to load manager data")
+            }
+
+            setManagerData({
+                adminCode: data?.adminCode ?? null,
+                totalTickets: Number(data?.totalTickets ?? 0),
+                scannedTickets: Number(data?.scannedTickets ?? 0),
+                members: Array.isArray(data?.members) ? data.members : [],
+            })
+        } catch (error) {
+            setManagerErrorMessage(error instanceof Error ? error.message : "Failed to load manager data")
+        } finally {
+            setManagerLoading(false)
+        }
+    }
+
+    const closeManagerView = () => {
+        setManagerData(null)
+        setManagerLoading(false)
+        setManagerErrorMessage("")
+        setManagerEventName("")
     }
 
     const generateTicketForEvent = async (eventId: string, eventName: string) => {
@@ -120,6 +223,7 @@ export default function HomePage() {
 
             setSelectedEventTitle(eventName)
             setTicketID(finalTicketId)
+            fetchMyEvents()
         } catch (error) {
             console.error("Error generating ticket:", error)
             alert(error instanceof Error ? error.message : "Unable to generate ticket. Please try again.")
@@ -223,6 +327,12 @@ export default function HomePage() {
                     console.error("Error in sync-user:", error)
                     setLoading(false)
                 })
+        }
+    }, [user])
+
+    useEffect(() => {
+        if (user) {
+            fetchMyEvents()
         }
     }, [user])
 
@@ -498,6 +608,91 @@ export default function HomePage() {
                                 Choose an active event to generate your ticket
                             </p>
                         </motion.div>
+
+                        <div className="mb-4 p-4 bg-black/30 rounded-xl border border-white/10 space-y-3">
+                            <h2 className="text-white font-semibold">Join Event via Admin Code</h2>
+                            <div className="flex gap-2">
+                                <input
+                                    className="flex-1 bg-black/30 p-2 rounded-lg border border-white/10 text-white"
+                                    placeholder="Enter admin code"
+                                    value={adminCodeInput}
+                                    onChange={(e) => setAdminCodeInput(e.target.value)}
+                                />
+                                <button
+                                    className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-medium px-4 rounded-lg"
+                                    onClick={joinEventWithCode}
+                                    disabled={joiningByCode}
+                                >
+                                    {joiningByCode ? "Joining..." : "Join"}
+                                </button>
+                            </div>
+                            {joinSuccessMessage && <p className="text-green-300 text-sm">{joinSuccessMessage}</p>}
+                            {joinErrorMessage && <p className="text-red-300 text-sm">{joinErrorMessage}</p>}
+                        </div>
+
+                        <div className="mb-4 p-4 bg-black/30 rounded-xl border border-white/10 space-y-3">
+                            <h2 className="text-white font-semibold">My Events</h2>
+                            {myEventsLoading ? (
+                                <p className="text-white/70 text-sm">Loading my events...</p>
+                            ) : myEvents.length === 0 ? (
+                                <p className="text-white/70 text-sm">You have not joined any events yet.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {myEvents.map((myEvent) => (
+                                        <div key={myEvent.id} className="p-3 bg-black/20 rounded-lg border border-white/10">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div>
+                                                    <p className="text-white font-medium">{myEvent.name}</p>
+                                                    <p className="text-white/60 text-xs">Role: {myEvent.role}</p>
+                                                </div>
+                                                {(myEvent.role === "admin" || myEvent.role === "creator") && (
+                                                    <button
+                                                        className="text-sm bg-white/10 text-white px-3 py-1 rounded-lg border border-white/20"
+                                                        onClick={() => openManagerView(myEvent.id, myEvent.name)}
+                                                    >
+                                                        Manage
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {managerLoading && <p className="text-white/70 text-sm">Loading manager view...</p>}
+                            {managerErrorMessage && <p className="text-red-300 text-sm">{managerErrorMessage}</p>}
+
+                            {managerData && (
+                                <div className="p-3 bg-black/20 rounded-lg border border-white/10 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-white font-medium">Manager View: {managerEventName}</p>
+                                        <button
+                                            className="text-xs text-white/70 hover:text-white"
+                                            onClick={closeManagerView}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                    <p className="text-white/80 text-sm">Admin Code: {managerData.adminCode || "N/A"}</p>
+                                    <p className="text-white/80 text-sm">Total Tickets: {managerData.totalTickets}</p>
+                                    <p className="text-white/80 text-sm">Scanned Tickets: {managerData.scannedTickets}</p>
+                                    <div>
+                                        <p className="text-white/80 text-sm mb-1">Members:</p>
+                                        {managerData.members.length === 0 ? (
+                                            <p className="text-white/60 text-xs">No members found.</p>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                {managerData.members.map((member) => (
+                                                    <p key={`${member.userid}-${member.role}`} className="text-white/70 text-xs">
+                                                        {member.userid} ({member.role})
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {eventsLoading ? (
                             <div className="flex items-center justify-center p-8 bg-black/30 rounded-xl">
