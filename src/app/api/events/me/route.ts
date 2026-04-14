@@ -8,7 +8,7 @@ export async function GET() {
         const { userId } = await auth();
 
         if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
         const events = await db.execute(
@@ -22,9 +22,8 @@ export async function GET() {
 
         const eventRows = (events as unknown as { rows: unknown[] }).rows;
 
-        return NextResponse.json({ events: eventRows });
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ success: true, data: { events: eventRows }, events: eventRows });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

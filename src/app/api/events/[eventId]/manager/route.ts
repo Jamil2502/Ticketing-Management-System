@@ -11,13 +11,13 @@ export async function GET(
         const { userId } = await auth();
 
         if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
         const { eventId } = await params;
 
         if (!eventId) {
-            return NextResponse.json({ error: "eventId is required" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "eventId is required" }, { status: 400 });
         }
 
         const authCheck = await db.execute(
@@ -30,7 +30,7 @@ export async function GET(
         const authRows = (authCheck as unknown as { rows: { role: string }[] }).rows;
 
         if (authRows.length === 0) {
-            return new NextResponse("Forbidden", { status: 403 });
+            return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
         }
 
         const [eventData, ticketStats, membersData] = await Promise.all([
@@ -55,19 +55,25 @@ export async function GET(
         const memberRows = (membersData as unknown as { rows: { userid: string; role: string }[] }).rows;
 
         if (eventRows.length === 0) {
-            return NextResponse.json({ error: "Event not found" }, { status: 404 });
+            return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 });
         }
 
         const statsRow = ticketRows[0] ?? { total_tickets: 0, scanned_tickets: 0 };
 
         return NextResponse.json({
+            success: true,
+            data: {
+                adminCode: eventRows[0].admin_code,
+                totalTickets: Number(statsRow.total_tickets ?? 0),
+                scannedTickets: Number(statsRow.scanned_tickets ?? 0),
+                members: memberRows,
+            },
             adminCode: eventRows[0].admin_code,
             totalTickets: Number(statsRow.total_tickets ?? 0),
             scannedTickets: Number(statsRow.scanned_tickets ?? 0),
             members: memberRows,
         });
-    } catch (error: unknown) {
-        console.error("Manager API Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

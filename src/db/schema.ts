@@ -31,26 +31,26 @@ export const eventsTable = pgTable("events", {
 })
 
 export const eventMembersTable = pgTable("event_members", {
-    userID: varchar("userid", { length: 100 }).references(() => usersTable.id).notNull(),
-    eventID: varchar("eventid", { length: 100 }).references(() => eventsTable.id).notNull(),
+    userId: varchar("userid", { length: 100 }).references(() => usersTable.id).notNull(),
+    eventId: varchar("eventid", { length: 100 }).references(() => eventsTable.id).notNull(),
     role: varchar("role", { length: 20 }).notNull(),
     joinedAt: varchar("joined_at", { length: 100 }).notNull()
 }, (table) => ({
-    pk: primaryKey({ columns: [table.eventID, table.userID] })
+    pk: primaryKey({ columns: [table.eventId, table.userId] })
 }))
 
 export const ticketTable = pgTable("tickets", {
     id: varchar("id", {length: 100}).primaryKey(), //gen random uuid
     title: varchar("title", {length: 100}).notNull(),
-    userID: varchar("userid", {length: 100}).references(() => studentTable.id).notNull(),
-    eventID: varchar("eventid", {length: 100}).references(() => eventsTable.id).notNull(),
-    adminID: varchar("adminid", {length: 100}).references(() => adminTable.id),
+    userId: varchar("userid", {length: 100}).references(() => studentTable.id).notNull(),
+    eventId: varchar("eventid", {length: 100}).references(() => eventsTable.id).notNull(),
+    adminId: varchar("adminid", {length: 100}).references(() => adminTable.id),
     scannedBy: varchar("scanned_by", {length: 100}).references(() => usersTable.id),
     isValid: boolean("isvalid"),
     createdAt: varchar("createdat", {length: 100}).notNull(),
     scannedAt: varchar("scanned_at", {length: 100})
 }, (table) => ({
-    userEventUnique: unique().on(table.userID, table.eventID)
+    userEventUnique: unique().on(table.userId, table.eventId)
 }))
 export const descriptionsTable = pgTable("descriptions", {
     id: varchar("id", {length: 100}).references(() => ticketTable.id).primaryKey(),

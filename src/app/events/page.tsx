@@ -44,7 +44,7 @@ export default function EventsPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    ticketID: ticket,
+                    ticketId: ticket,
                     title: eventName,
                     uid: user.id,
                     createdAt: formattedDate,
@@ -58,7 +58,7 @@ export default function EventsPage() {
                 throw new Error(ticketData.error || "Failed to generate ticket");
             }
 
-            const finalTicketId = ticketData.ticketID || ticket;
+            const finalTicketId = ticketData.ticketId || ticketData.ticketID || ticket;
 
             await fetch("/api/ticket_desc", {
                 method: "POST",

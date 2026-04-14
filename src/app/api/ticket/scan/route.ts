@@ -9,13 +9,13 @@ export async function POST(req: Request) {
         const { userId } = await auth();
 
         if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
         const { ticketId, eventId } = await req.json();
 
         if (!ticketId || !eventId) {
-            return NextResponse.json({ error: "Missing ticketId or eventId" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "Missing ticketId or eventId" }, { status: 400 });
         }
 
         const authCheck = await db.execute(
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         const authRows = (authCheck as unknown as { rows: { role: string }[] }).rows;
 
         if (authRows.length === 0) {
-            return new NextResponse("Forbidden", { status: 403 });
+            return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
         }
 
         const existingTicket = await db.execute(
@@ -38,13 +38,13 @@ export async function POST(req: Request) {
         const ticketRows = (existingTicket as unknown as { rows: { id: string; isvalid: boolean | null }[] }).rows;
 
         if (ticketRows.length === 0) {
-            return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+            return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });
         }
 
         const ticket = ticketRows[0];
 
         if (!ticket.isvalid) {
-            return NextResponse.json({ error: "Ticket already used" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "Ticket already used" }, { status: 400 });
         }
 
         await db.execute(
@@ -53,9 +53,8 @@ export async function POST(req: Request) {
                 WHERE id = ${ticketId} AND eventid = ${eventId}`
         );
 
-        return NextResponse.json({ success: true, message: "Entry allowed" });
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ success: true, data: { message: "Entry allowed" }, message: "Entry allowed" });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

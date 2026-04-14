@@ -8,7 +8,7 @@ export async function POST(req: Request) {
         const { id } = await req.json();
 
         if (!id) {
-            return NextResponse.json({ error: "Missing ID" });
+            return NextResponse.json({ success: false, error: "Missing ID" }, { status: 400 });
         }
 
         //if the student exists using raw SQL
@@ -17,13 +17,12 @@ export async function POST(req: Request) {
         );
 
         if (existingUser.length === 0) {
-            return NextResponse.json({ exists: false });
+            return NextResponse.json({ success: true, data: { exists: false }, exists: false });
         }
 
-        return NextResponse.json({ exists: true });
+        return NextResponse.json({ success: true, data: { exists: true }, exists: true });
 
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: error });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

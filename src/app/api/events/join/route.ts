@@ -8,14 +8,14 @@ export async function POST(req: NextRequest) {
         const { userId } = await auth();
 
         if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }
 
         const body = await req.json();
         const { adminCode } = body;
 
         if (!adminCode) {
-            return NextResponse.json({ error: "adminCode is required" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "adminCode is required" }, { status: 400 });
         }
 
         const existingEvent = await db.execute(
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         const eventRows = (existingEvent as unknown as { rows: { id: string; name: string }[] }).rows;
 
         if (eventRows.length === 0) {
-            return NextResponse.json({ error: "Invalid admin code" }, { status: 404 });
+            return NextResponse.json({ success: false, error: "Invalid admin code" }, { status: 404 });
         }
 
         const eventId = eventRows[0].id;
@@ -42,12 +42,16 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
+            data: {
+                message: "Successfully joined as admin",
+                eventId,
+                name: eventName,
+            },
             message: "Successfully joined as admin",
             eventId,
             name: eventName,
         });
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

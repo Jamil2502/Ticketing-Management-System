@@ -8,7 +8,7 @@ export async function POST(req: Request) {
         const { descid, hder, descrip, footer } = await req.json();
 
         if (!descid || !hder || !descrip || !footer) {
-            return NextResponse.json({ error: "Missing fields" });
+            return NextResponse.json({ success: false, error: "Missing fields" }, { status: 400 });
         }
 
         //if the user already exists
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         );
 
         if (existingUser.length > 0) {
-            return NextResponse.json({ message: "Description already exists" });
+            return NextResponse.json({ success: true, data: { message: "Description already exists" }, message: "Description already exists" });
         }
 
         //inserting the new user
@@ -25,10 +25,9 @@ export async function POST(req: Request) {
             sql`INSERT INTO ${descriptionsTable} (id, header, description, footer) VALUES (${descid}, ${hder}, ${descrip}, ${footer})`
         );
 
-        return NextResponse.json({ message: "Description added to database" });
+        return NextResponse.json({ success: true, data: { message: "Description added to database" }, message: "Description added to database" });
 
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: error });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

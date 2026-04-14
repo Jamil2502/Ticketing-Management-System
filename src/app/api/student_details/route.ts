@@ -8,7 +8,7 @@ export async function POST(req: Request) {
         const { id, college, stream, year } = await req.json();
 
         if (!id || !college || !stream || !year) {
-            return NextResponse.json({ error: "Missing fields" });
+            return NextResponse.json({ success: false, error: "Missing fields" }, { status: 400 });
         }
 
         //if the student already exists
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         );
 
         if (existingUser.length > 0) {
-            return NextResponse.json({ message: "User already exists" });
+            return NextResponse.json({ success: true, data: { message: "User already exists" }, message: "User already exists" });
         }
 
         //insert the new student
@@ -26,10 +26,9 @@ export async function POST(req: Request) {
                 VALUES (${id}, ${college}, ${stream}, ${year})`
         );
 
-        return NextResponse.json({ message: "User added to database" });
+        return NextResponse.json({ success: true, data: { message: "User added to database" }, message: "User added to database" });
 
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: error });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }

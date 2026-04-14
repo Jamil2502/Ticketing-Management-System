@@ -9,10 +9,9 @@ export async function GET() {
             sql`SELECT id, name, date FROM events WHERE status = 'active'`
         );
 
-        return NextResponse.json({ events });
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: error });
+        return NextResponse.json({ success: true, data: { events }, events });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }
 
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
 
         if (!name || !userId) {
             return NextResponse.json(
-                { error: "Name and userId are required" },
+                { success: false, error: "Name and userId are required" },
                 { status: 400 }
             );
         }
@@ -47,13 +46,13 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
+            data: { eventId, adminCode },
             eventId,
             adminCode,
         });
-    } catch (error: unknown) {
-        console.error("Error creating event:", error);
+    } catch {
         return NextResponse.json(
-            { error: "Internal Server Error" },
+            { success: false, error: "Internal Server Error" },
             { status: 500 }
         );
     }

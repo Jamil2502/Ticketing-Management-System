@@ -5,10 +5,11 @@ import {ticketTable} from "@/db/schema";
 
 export async function POST(req: Request) {
     try {
-        const { ticketID, title, uid, createdAt, torf, eventId } = await req.json();
+        const { ticketId, ticketID, title, uid, createdAt, torf, eventId } = await req.json();
+        const resolvedTicketId = ticketId ?? ticketID;
 
-        if (!ticketID || !title|| !uid || !createdAt || !torf || !eventId) {
-            return NextResponse.json({ error: "Missing fields" });
+        if (!resolvedTicketId || !title|| !uid || !createdAt || !torf || !eventId) {
+            return NextResponse.json({ success: false, error: "Missing fields" }, { status: 400 });
         }
 
         //if the ticket already exists
@@ -21,14 +22,14 @@ export async function POST(req: Request) {
         if (existingRows.length > 0) {
             const existingTicket = existingRows[0];
             if (existingTicket.isvalid) {
-                return NextResponse.json({ message: "Existing ticket retrieved", ticketID: existingTicket.id });
+                return NextResponse.json({ success: true, data: { message: "Existing ticket retrieved", ticketId: existingTicket.id }, message: "Existing ticket retrieved", ticketId: existingTicket.id });
             }
-            return NextResponse.json({ error: "Ticket has already been used for this event" }, { status: 400 });
+            return NextResponse.json({ success: false, error: "Ticket has already been used for this event" }, { status: 400 });
         }
 
         //inserting the new ticket
         await db.execute(
-            sql`INSERT INTO ${ticketTable} (id, title, userID, eventid, createdAt, isvalid) VALUES (${ticketID}, ${title}, ${uid}, ${eventId}, ${createdAt}, ${torf})`
+            sql`INSERT INTO ${ticketTable} (id, userid, eventid, title, createdAt, isvalid) VALUES (${resolvedTicketId}, ${uid}, ${eventId}, ${title}, ${createdAt}, ${torf})`
         );
 
         const joinedAt = new Date().toISOString();
@@ -38,10 +39,9 @@ export async function POST(req: Request) {
             ON CONFLICT (eventid, userid) DO NOTHING
         `);
 
-        return NextResponse.json({ message: "Ticket added to database", ticketID: ticketID });
+        return NextResponse.json({ success: true, data: { message: "Ticket added to database", ticketId: resolvedTicketId }, message: "Ticket added to database", ticketId: resolvedTicketId });
 
-    } catch (error: unknown) {
-        console.error("API Error:", error);
-        return NextResponse.json({ error: error });
+    } catch {
+        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }
 }
