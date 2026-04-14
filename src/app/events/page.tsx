@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { fetchJsonOrThrow } from "@/lib/safeFetch";
 
 type EventItem = { id: string; name: string; date?: string };
 type MyEventItem = { id: string; role: string; isvalid?: boolean | null };
+type EventsApiResponse<T> = { events?: T[]; data?: { events?: T[] } };
 
 export default function EventsPage() {
     const { user, isLoaded, isSignedIn } = useUser();
@@ -25,17 +27,13 @@ export default function EventsPage() {
     const hasFetchedOnLoad = useRef(false);
 
     const fetchActiveEvents = useCallback(async () => {
-        const response = await fetch("/api/events", { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || "Failed to fetch events");
-        setEvents(data?.events ?? []);
+        const data = await fetchJsonOrThrow<EventsApiResponse<EventItem>>("/api/events", { cache: "no-store" }, "Failed to load events");
+        setEvents(data?.events ?? data?.data?.events ?? []);
     }, []);
 
     const fetchMyEvents = useCallback(async () => {
-        const response = await fetch("/api/events/me", { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || "Failed to fetch my events");
-        setMyEvents(data?.events ?? []);
+        const data = await fetchJsonOrThrow<EventsApiResponse<MyEventItem>>("/api/events/me", { cache: "no-store" }, "Failed to load events");
+        setMyEvents(data?.events ?? data?.data?.events ?? []);
     }, []);
 
     const createEvent = useCallback(async () => {
@@ -51,7 +49,7 @@ export default function EventsPage() {
             setPageError("");
             setPageSuccess("");
 
-            const response = await fetch("/api/events", {
+            await fetchJsonOrThrow("/api/events", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -60,12 +58,7 @@ export default function EventsPage() {
                     date: createDate.trim() || undefined,
                     userId: user.id,
                 }),
-            });
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data?.error || "Failed to create event");
-            }
+            }, "Failed to create event");
 
             setIsCreateOpen(false);
             setCreateName("");
@@ -93,7 +86,7 @@ export default function EventsPage() {
             const date = new Date();
             const formattedDate = `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
 
-            const ticketRes = await fetch("/api/ticket", {
+            const ticketData = await fetchJsonOrThrow<{ ticketId?: string; ticketID?: string; data?: { ticketId?: string; ticketID?: string } }>("/api/ticket", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -104,16 +97,11 @@ export default function EventsPage() {
                     torf: true,
                     eventId,
                 }),
-            });
+            }, "Failed to generate ticket");
 
-            const ticketData = await ticketRes.json();
-            if (!ticketRes.ok || ticketData.error) {
-                throw new Error(ticketData.error || "Failed to generate ticket");
-            }
+            const finalTicketId = ticketData.ticketId || ticketData.ticketID || ticketData.data?.ticketId || ticketData.data?.ticketID || ticket;
 
-            const finalTicketId = ticketData.ticketId || ticketData.ticketID || ticket;
-
-            await fetch("/api/ticket_desc", {
+            await fetchJsonOrThrow("/api/ticket_desc", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -122,7 +110,7 @@ export default function EventsPage() {
                     descrip: eventName,
                     footer: user.lastName,
                 }),
-            });
+            }, "Failed to generate ticket");
 
             router.push("/events/me");
             setPageSuccess("Ticket generated");

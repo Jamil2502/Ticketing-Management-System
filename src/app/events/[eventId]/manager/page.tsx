@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import SimpleQRScanner from "@/components/scanner";
+import { fetchJsonOrThrow } from "@/lib/safeFetch";
 
 type ManagerData = {
     adminCode: string | null;
@@ -11,6 +12,7 @@ type ManagerData = {
     scannedTickets: number;
     members: { userid: string; role: string }[];
 };
+type ManagerApiResponse = { data?: ManagerData } & Partial<ManagerData>;
 
 export default function EventManagerPage() {
     const { user, isLoaded, isSignedIn } = useUser();
@@ -23,12 +25,7 @@ export default function EventManagerPage() {
     const [data, setData] = useState<ManagerData | null>(null);
 
     const fetchManagerData = useCallback(async () => {
-        const response = await fetch(`/api/events/${eventId}/manager`);
-        const body = await response.json();
-
-        if (!response.ok) {
-            throw new Error(body?.error || "Failed to load manager data");
-        }
+        const body = await fetchJsonOrThrow<ManagerApiResponse>(`/api/events/${eventId}/manager`, undefined, "Failed to load manager data");
 
         const payload = body?.data ?? body;
 

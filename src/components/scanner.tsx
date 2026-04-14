@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import QrScanner from 'qr-scanner';
+import { fetchJsonOrThrow } from '@/lib/safeFetch';
 
 interface SimpleQRScannerProps {
     eventId: string;
@@ -53,21 +54,15 @@ const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ eventId }) => {
                         timeoutRef.current = null;
                     }
 
-                    fetch("/api/ticket/scan", {
+                    fetchJsonOrThrow("/api/ticket/scan", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             ticketId,
                             eventId: eventId,
                         }),
-                    })
-                        .then(async (response) => {
-                            const data = await response.json();
-
-                            if (!response.ok) {
-                                throw new Error(data?.error || data?.message || "Scan failed");
-                            }
-
+                    }, "Scan failed")
+                        .then(() => {
                             if (!isMountedRef.current) return;
                             setScanStatus("success");
                             setScanMessage("Entry allowed");

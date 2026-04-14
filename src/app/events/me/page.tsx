@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import QrCode from "@/components/QrCode";
+import { fetchJsonOrThrow } from "@/lib/safeFetch";
 
 type MyEvent = {
     id: string;
@@ -13,6 +14,7 @@ type MyEvent = {
     isvalid?: boolean | null;
     ticketid?: string | null;
 };
+type MyEventsApiResponse = { events?: MyEvent[]; data?: { events?: MyEvent[] } };
 
 export default function MyEventsPage() {
     const { isLoaded, isSignedIn } = useUser();
@@ -24,10 +26,9 @@ export default function MyEventsPage() {
     const hasFetchedOnLoad = useRef(false);
 
     const fetchMyEvents = async () => {
-        const response = await fetch("/api/events/me");
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || "Failed to fetch my events");
-        setEvents(Array.isArray(data?.events) ? data.events : []);
+        const data = await fetchJsonOrThrow<MyEventsApiResponse>("/api/events/me", undefined, "Failed to load events");
+        const eventList = data?.events ?? data?.data?.events ?? [];
+        setEvents(Array.isArray(eventList) ? eventList : []);
     };
 
     useEffect(() => {
@@ -40,7 +41,7 @@ export default function MyEventsPage() {
         setLoading(true);
         setError("");
         fetchMyEvents()
-            .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to fetch my events"))
+            .catch(() => setError("Failed to load events"))
             .finally(() => setLoading(false));
     }, [isLoaded, isSignedIn]);
 

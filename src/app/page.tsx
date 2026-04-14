@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import bcrypt from "bcryptjs";
+import { fetchJsonOrThrow } from "@/lib/safeFetch";
 
 export default function HomePage() {
     const { user, isSignedIn, isLoaded } = useUser();
@@ -28,7 +29,7 @@ export default function HomePage() {
         const salt = bcrypt.genSaltSync(10);
         const hash = bcrypt.hashSync(email, salt);
 
-        fetch("/api/sync-user", {
+        fetchJsonOrThrow("/api/sync-user", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -37,16 +38,14 @@ export default function HomePage() {
                 password: hash,
                 name: `${user.firstName} ${user.lastName}`.trim(),
             }),
-        })
-            .then((res) => res.json())
+        }, "Failed to load events")
             .then(() => {
-                return fetch("/api/get_student_id", {
+                return fetchJsonOrThrow<{ exists?: boolean }>("/api/get_student_id", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ id: user.id }),
-                });
+                }, "Failed to load events");
             })
-            .then((res) => res.json())
             .then((data) => {
                 if (data.exists) {
                     setStudentExists(true);
@@ -64,7 +63,7 @@ export default function HomePage() {
     const studentDetails = async () => {
         if (!user?.id) return;
 
-        const res = await fetch("/api/student_details", {
+        const data = await fetchJsonOrThrow("/api/student_details", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -73,9 +72,9 @@ export default function HomePage() {
                 stream: cStream,
                 year: cYear,
             }),
-        });
+        }, "Failed to load events");
 
-        if (res.ok) {
+        if (data) {
             router.push("/events");
         }
     };

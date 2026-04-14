@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { fetchJsonOrThrow } from "@/lib/safeFetch";
 
 export default function AppHeader() {
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -38,17 +39,11 @@ export default function AppHeader() {
             setJoinError("");
             setJoinMessage("");
 
-            const response = await fetch("/api/events/join", {
+            await fetchJsonOrThrow("/api/events/join", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ adminCode: adminCode.trim() }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data?.error || "Failed to join event");
-            }
+            }, "Failed to join event");
 
             setJoinMessage("Joined successfully");
             setJoinError("");
