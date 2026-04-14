@@ -3,7 +3,7 @@ import QrScanner from 'qr-scanner';
 
 interface SimpleQRScannerProps {
     adminId?: string;
-    eventId?: string;
+    eventId: string;
 }
 const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId, eventId }) => {
     const [scanResult, setScanResult] = useState<string | null>(null);

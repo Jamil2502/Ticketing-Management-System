@@ -20,12 +20,11 @@ export default function HomePage() {
     const [cYear, setCYear] = useState("")
     const [ticketID, setTicketID] = useState("")
     const [selectedEventTitle, setSelectedEventTitle] = useState("")
-    const [events, setEvents] = useState<{ id: string; name: string; date?: string; useLegacyFallback?: boolean }[]>([])
+    const [events, setEvents] = useState<{ id: string; name: string; date?: string }[]>([])
     const [eventsLoading, setEventsLoading] = useState(false)
     const [generatingEventId, setGeneratingEventId] = useState<string | null>(null)
     const [adminSelectedEventId, setAdminSelectedEventId] = useState<string | null>(null)
     const [adminSelectedEventName, setAdminSelectedEventName] = useState("")
-    const [adminUseLegacyFallback, setAdminUseLegacyFallback] = useState(false)
 
     const [studentExists, setStudentExists] = useState<boolean | null>(null)
 
@@ -44,17 +43,17 @@ export default function HomePage() {
             if (activeEvents.length > 0) {
                 setEvents(activeEvents)
             } else {
-                setEvents([{ id: "legacy-fallback-local", name: "Ephemeral 2026", useLegacyFallback: true }])
+                setEvents([])
             }
         } catch (error) {
             console.error("Error fetching events:", error)
-            setEvents([{ id: "legacy-fallback-local", name: "Ephemeral 2026", useLegacyFallback: true }])
+            setEvents([])
         } finally {
             setEventsLoading(false)
         }
     }
 
-    const generateTicketForEvent = async (eventId: string, eventName: string, useLegacyFallback = false) => {
+    const generateTicketForEvent = async (eventId: string, eventName: string) => {
         if (!user) return
 
         try {
@@ -77,17 +76,14 @@ export default function HomePage() {
                 uid: string;
                 createdAt: string;
                 torf: boolean;
-                eventId?: string;
+                eventId: string;
             } = {
                 ticketID: ticket,
                 title: eventName,
                 uid: user.id,
                 createdAt: formattedDate,
                 torf: true,
-            }
-
-            if (!useLegacyFallback) {
-                payload.eventId = eventId
+                eventId: eventId,
             }
 
             const ticketRes = await fetch("./api/ticket", {
@@ -398,7 +394,6 @@ export default function HomePage() {
                                                 onClick={() => {
                                                     setAdminSelectedEventId(eventItem.id)
                                                     setAdminSelectedEventName(eventItem.name)
-                                                    setAdminUseLegacyFallback(Boolean(eventItem.useLegacyFallback))
                                                 }}
                                             >
                                                 Manage Event
@@ -444,7 +439,6 @@ export default function HomePage() {
                                 onClick={() => {
                                     setAdminSelectedEventId(null)
                                     setAdminSelectedEventName("")
-                                    setAdminUseLegacyFallback(false)
                                 }}
                             >
                                 Change Event
@@ -468,7 +462,7 @@ export default function HomePage() {
                             <div className="flex-1 overflow-hidden p-3 min-h-0">
                                 <SimpleQRScanner
                                     adminId={user.id}
-                                    eventId={adminUseLegacyFallback ? undefined : adminSelectedEventId}
+                                    eventId={adminSelectedEventId}
                                 />
                             </div>
                         </div>
@@ -523,7 +517,7 @@ export default function HomePage() {
                                         )}
                                         <button
                                             className="w-full mt-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-200"
-                                            onClick={() => generateTicketForEvent(eventItem.id, eventItem.name, eventItem.useLegacyFallback)}
+                                            onClick={() => generateTicketForEvent(eventItem.id, eventItem.name)}
                                             disabled={generatingEventId !== null}
                                         >
                                             {generatingEventId === eventItem.id ? "Generating..." : "Get Ticket"}

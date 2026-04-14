@@ -1,4 +1,4 @@
-import {boolean, integer, pgTable, primaryKey, varchar} from "drizzle-orm/pg-core";
+import {boolean, integer, pgTable, primaryKey, unique, varchar} from "drizzle-orm/pg-core";
 
 
 export const usersTable = pgTable("users", {
@@ -41,14 +41,16 @@ export const eventMembersTable = pgTable("event_members", {
 export const ticketTable = pgTable("tickets", {
     id: varchar("id", {length: 100}).primaryKey(), //gen random uuid
     title: varchar("title", {length: 100}).notNull(),
-    userID: varchar("userid", {length: 100}).references(() => studentTable.id).unique().notNull(),
-    eventID: varchar("eventid", {length: 100}).references(() => eventsTable.id),
+    userID: varchar("userid", {length: 100}).references(() => studentTable.id).notNull(),
+    eventID: varchar("eventid", {length: 100}).references(() => eventsTable.id).notNull(),
     adminID: varchar("adminid", {length: 100}).references(() => adminTable.id),
     scannedBy: varchar("scanned_by", {length: 100}).references(() => usersTable.id),
     isValid: boolean("isvalid"),
     createdAt: varchar("createdat", {length: 100}).notNull(),
     scannedAt: varchar("scanned_at", {length: 100})
-})
+}, (table) => ({
+    userEventUnique: unique().on(table.userID, table.eventID)
+}))
 export const descriptionsTable = pgTable("descriptions", {
     id: varchar("id", {length: 100}).references(() => ticketTable.id).primaryKey(),
     header: varchar("header", {length : 100}).notNull(),
