@@ -3,7 +3,11 @@ import postgres from "postgres";
 import * as schema from "@/db/schema"; // Ensure this matches your schema file
 
 // Initialize PostgreSQL client
-const client = postgres(process.env.DATABASE_URL!, { ssl: "require" });
+const client = postgres(process.env.DATABASE_URL!, {
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
 
 // Drizzle instance
 export const db = drizzle(client, { schema });

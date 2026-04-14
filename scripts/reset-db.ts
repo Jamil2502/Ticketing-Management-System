@@ -1,5 +1,16 @@
+import { config } from "dotenv";
+config();
+
 import { sql } from "drizzle-orm";
-import { db } from "../src/lib/db";
+
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+
+const client = postgres(process.env.DATABASE_URL!, {
+  ssl: { rejectUnauthorized: false },
+});
+
+const db = drizzle(client);
 
 async function resetDatabase() {
     console.log("Resetting database: dropping public schema...");
