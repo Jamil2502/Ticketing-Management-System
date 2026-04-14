@@ -18,10 +18,112 @@ export default function HomePage() {
     const [cName, setCName] = useState("")
     const [cStream, setCStream] = useState("")
     const [cYear, setCYear] = useState("")
-    const [eventTitle, setEventTitle] = useState("")
     const [ticketID, setTicketID] = useState("")
+    const [selectedEventTitle, setSelectedEventTitle] = useState("")
+    const [events, setEvents] = useState<{ id: string; name: string; date?: string; useLegacyFallback?: boolean }[]>([])
+    const [eventsLoading, setEventsLoading] = useState(false)
+    const [generatingEventId, setGeneratingEventId] = useState<string | null>(null)
 
     const [studentExists, setStudentExists] = useState<boolean | null>(null)
+
+    const fetchActiveEvents = async () => {
+        setEventsLoading(true)
+        try {
+            const response = await fetch("./api/events")
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch events")
+            }
+
+            const data = await response.json()
+            const activeEvents = Array.isArray(data?.events) ? data.events : []
+
+            if (activeEvents.length > 0) {
+                setEvents(activeEvents)
+            } else {
+                setEvents([{ id: "legacy-fallback-local", name: "Ephemeral 2026", useLegacyFallback: true }])
+            }
+        } catch (error) {
+            console.error("Error fetching events:", error)
+            setEvents([{ id: "legacy-fallback-local", name: "Ephemeral 2026", useLegacyFallback: true }])
+        } finally {
+            setEventsLoading(false)
+        }
+    }
+
+    const generateTicketForEvent = async (eventId: string, eventName: string, useLegacyFallback = false) => {
+        if (!user) return
+
+        try {
+            setGeneratingEventId(eventId)
+
+            const email = user.primaryEmailAddress?.emailAddress || ""
+            const ticket = `${email}${user.id}`.trim()
+            const formatDate = (date: Date = new Date()): string => {
+                const day = String(date.getDate()).padStart(2, "0")
+                const month = String(date.getMonth() + 1).padStart(2, "0")
+                const year = date.getFullYear()
+
+                return `${day}-${month}-${year}`
+            }
+            const formattedDate = formatDate()
+
+            const payload: {
+                ticketID: string;
+                title: string;
+                uid: string;
+                createdAt: string;
+                torf: boolean;
+                eventId?: string;
+            } = {
+                ticketID: ticket,
+                title: eventName,
+                uid: user.id,
+                createdAt: formattedDate,
+                torf: true,
+            }
+
+            if (!useLegacyFallback) {
+                payload.eventId = eventId
+            }
+
+            const ticketRes = await fetch("./api/ticket", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            })
+
+            const ticketData = await ticketRes.json()
+            console.log("Ticket Gen response:", ticketData)
+
+            const desc = `${ticket} ${eventName}`.trim()
+            const descRes = await fetch("./api/ticket_desc", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    descid: desc,
+                    hder: user.firstName,
+                    descrip: eventName,
+                    footer: user.lastName,
+                }),
+            })
+
+            const descData = await descRes.json()
+            if (descData.exists) {
+                console.log("Description already exists")
+            } else {
+                console.log("New description added:", descData)
+            }
+
+            setSelectedEventTitle(eventName)
+            setTicketID(ticket)
+        } catch (error) {
+            console.error("Error generating ticket:", error)
+            alert("Unable to generate ticket. Please try again.")
+        } finally {
+            setGeneratingEventId(null)
+        }
+    }
 
     useEffect(() => {
         if (user && user?.publicMetadata?.role !== "admin") {
@@ -55,65 +157,14 @@ export default function HomePage() {
                 .then((data) => {
                     if (data.exists) {
                         setStudentExists(true)
-                        const eventT = "Ephemeral 2026"
-                        setEventTitle(eventT)
-                        const ticket = `${email}${user.id}`.trim()
-                        console.log(ticket)
-                        setTicketID(ticket)
-                        const formatDate = (date: Date = new Date()): string => {
-                            const day = String(date.getDate()).padStart(2, "0")
-                            const month = String(date.getMonth() + 1).padStart(2, "0") // January is 0
-                            const year = date.getFullYear()
-
-                            return `${day}-${month}-${year}`
-                        }
-                        const formattedDate: string = formatDate()
-                        console.log(formatDate())
-                        fetch("./api/ticket", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                ticketID: ticket,
-                                title: eventT,
-                                uid: user.id,
-                                createdAt: formattedDate,
-                                torf: true,
-                            }),
-                        })
-                            .then((res) => res.json())
-                            .then((genTick) => {
-                                console.log("Ticket Gen response:", genTick)
-                                setLoading(false)
-
-                                // Proceed to check ticket description regardless of whether ticket was newly created or already exists
-                                const desc = `${ticket} ${eventTitle}`.trim()
-                                return fetch("./api/ticket_desc", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                        descid: desc,
-                                        hder: user.firstName,
-                                        descrip: eventT,
-                                        footer: user.lastName,
-                                    }),
-                                })
-                            })
-                            .then((res) => res.json())
-                            .then((descData) => {
-                                if (descData.exists) {
-                                    console.log("Description already exists")
-                                } else {
-                                    console.log("New description added:", descData)
-                                }
-                            })
-                            .catch((error) => {
-                                console.error("Error:", error)
+                        fetchActiveEvents()
+                            .finally(() => {
                                 setLoading(false)
                             })
                     } else {
                         setStudentExists(false)
+                        setLoading(false)
                     }
-                    setLoading(false)
                 })
                 .catch((error) => {
                     console.error("Error:", error)
@@ -341,6 +392,66 @@ export default function HomePage() {
         )
     }
 
+    if (studentExists === true && !ticketID) {
+        return (
+            <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
+                <BackgroundBeams className="opacity-50" />
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.7 }}
+                    className="relative z-10 flex flex-col items-center justify-center max-w-md w-full px-4"
+                >
+                    <div className="bg-black/50 backdrop-blur-xl p-8 rounded-2xl border border-teal-500/20 shadow-[0_0_30px_rgba(20,184,166,0.15)] w-full">
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.5 }}
+                            className="mb-6"
+                        >
+                            <h1 className="text-2xl font-bold mb-1 text-center text-white">Select Event</h1>
+                            <p className="text-white/70 text-center text-sm">
+                                Choose an active event to generate your ticket
+                            </p>
+                        </motion.div>
+
+                        {eventsLoading ? (
+                            <div className="flex items-center justify-center p-8 bg-black/30 rounded-xl">
+                                <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+                                <p className="ml-3 text-white">Loading events...</p>
+                            </div>
+                        ) : events.length === 0 ? (
+                            <div className="p-4 bg-black/30 rounded-xl border border-white/10">
+                                <p className="text-white/80 text-center">No active events available right now.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {events.map((eventItem) => (
+                                    <div
+                                        key={eventItem.id}
+                                        className="p-4 bg-black/30 rounded-xl border border-white/10"
+                                    >
+                                        <p className="text-white font-semibold">{eventItem.name}</p>
+                                        {eventItem.date && (
+                                            <p className="text-white/60 text-sm mt-1">{eventItem.date}</p>
+                                        )}
+                                        <button
+                                            className="w-full mt-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-200"
+                                            onClick={() => generateTicketForEvent(eventItem.id, eventItem.name, eventItem.useLegacyFallback)}
+                                            disabled={generatingEventId !== null}
+                                        >
+                                            {generatingEventId === eventItem.id ? "Generating..." : "Get Ticket"}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+            </div>
+        )
+    }
+
     return (
         <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
             <BackgroundBeams className="opacity-50" />
@@ -357,7 +468,7 @@ export default function HomePage() {
                         transition={{ delay: 0.2, duration: 0.5 }}
                         className="mb-6"
                     >
-                        <h1 className="text-2xl font-bold mb-1 text-center text-white">{eventTitle}</h1>
+                        <h1 className="text-2xl font-bold mb-1 text-center text-white">{selectedEventTitle}</h1>
                         <p className="text-white/70 text-center text-sm">
               <span className="font-medium text-teal-300">
                 {user?.firstName} {user?.lastName}
