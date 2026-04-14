@@ -15,7 +15,7 @@ type MyEvent = {
 };
 
 export default function MyEventsPage() {
-    const { user, isLoaded, isSignedIn } = useUser();
+    const { isLoaded, isSignedIn } = useUser();
     const router = useRouter();
 
     const [events, setEvents] = useState<MyEvent[]>([]);
