@@ -16,8 +16,10 @@ export async function POST(req: Request) {
             sql`SELECT id, isvalid FROM ${ticketTable} WHERE userid = ${uid} AND eventid = ${eventId} LIMIT 1`
         );
 
-        if (existingUser.length > 0) {
-            const existingTicket = existingUser[0];
+        const existingRows = (existingUser as unknown as { rows: { id: string; isvalid: boolean | null }[] }).rows;
+
+        if (existingRows.length > 0) {
+            const existingTicket = existingRows[0];
             if (existingTicket.isvalid) {
                 return NextResponse.json({ message: "Existing ticket retrieved", ticketID: existingTicket.id });
             }
@@ -28,6 +30,13 @@ export async function POST(req: Request) {
         await db.execute(
             sql`INSERT INTO ${ticketTable} (id, title, userID, eventid, createdAt, isvalid) VALUES (${ticketID}, ${title}, ${uid}, ${eventId}, ${createdAt}, ${torf})`
         );
+
+        const joinedAt = new Date().toISOString();
+        await db.execute(sql`
+            INSERT INTO event_members (userid, eventid, role, joined_at)
+            VALUES (${uid}, ${eventId}, 'member', ${joinedAt})
+            ON CONFLICT (eventid, userid) DO NOTHING
+        `);
 
         return NextResponse.json({ message: "Ticket added to database", ticketID: ticketID });
 
