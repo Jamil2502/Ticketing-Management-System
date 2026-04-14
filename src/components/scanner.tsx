@@ -2,30 +2,40 @@ import React, { useState, useRef, useEffect } from 'react';
 import QrScanner from 'qr-scanner';
 
 interface SimpleQRScannerProps {
-    adminId?: string;
     eventId: string;
 }
-const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId, eventId }) => {
+const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ eventId }) => {
     const [scanResult, setScanResult] = useState<string | null>(null);
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
-    const [isError, setIsError] = useState<boolean>(false);
+    const [scanStatus, setScanStatus] = useState<"idle" | "success" | "error">("idle");
+    const [scanMessage, setScanMessage] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const qrScannerRef = useRef<QrScanner | null>(null);
+    const isProcessingRef = useRef<boolean>(false);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isMountedRef = useRef<boolean>(true);
 
     useEffect(() => {
         return () => {
+            isMountedRef.current = false;
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
             if (qrScannerRef.current) {
                 if (qrScannerRef.current instanceof QrScanner) {
                     qrScannerRef.current.stop();
                     qrScannerRef.current.destroy();
+                    qrScannerRef.current = null;
                 }
             }
         };
     }, []);
 
     const startScanning = () => {
-        setStatusMessage(null);
-        setIsError(false);
+        if (qrScannerRef.current instanceof QrScanner) return;
+
+        setScanMessage(null);
+        setScanStatus("idle");
 
         const videoElement = videoRef.current;
         if (!videoElement) return;
@@ -33,42 +43,55 @@ const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId, eventId }) =
         const scanner = new QrScanner(
             videoElement,
             (result: QrScanner.ScanResult) => {
-                if (result.data) {
-                    console.log('Scanned result:', result.data);
-                    setScanResult(result.data);
+                if (result.data && !isProcessingRef.current) {
+                    isProcessingRef.current = true;
+                    const ticketId = result.data.trim();
+                    setScanResult(ticketId);
 
-                    if (qrScannerRef.current instanceof QrScanner) {
-                        qrScannerRef.current.stop();
-                        fetch("./api/isscan_ticket", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    scannedData: result.data,
-                                    adminId: adminId,
-                                    eventId: eventId,
-                                    }),
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                console.log("Server response:", data);
-                                setStatusMessage(data.message);
-
-                                // Show an alert specifically for already validated tickets
-                                if (data.message === "Ticket has already been validated") {
-                                    alert("Ticket has already been validated");
-                                }
-
-                                // Set error state
-                                setIsError(data.message === "Ticket has already been validated" ||
-                                    data.message === "Ticket not found" ||
-                                    data.error !== undefined);
-                            })
-                            .catch(error => {
-                                console.error("Error:", error);
-                                setStatusMessage("Error connecting to server");
-                                setIsError(true);
-                            });
+                    if (timeoutRef.current) {
+                        clearTimeout(timeoutRef.current);
+                        timeoutRef.current = null;
                     }
+
+                    fetch("/api/ticket/scan", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            ticketId,
+                            eventId: eventId,
+                        }),
+                    })
+                        .then(async (response) => {
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(data?.error || data?.message || "Scan failed");
+                            }
+
+                            if (!isMountedRef.current) return;
+                            setScanStatus("success");
+                            setScanMessage("Entry allowed");
+                        })
+                        .catch((error: unknown) => {
+                            const message = error instanceof Error ? error.message : "";
+                            const normalized = message.toLowerCase();
+                            const fallbackMessage = normalized.includes("fetch")
+                                ? "Connection error — try again"
+                                : (message || "Connection error — try again");
+
+                            if (!isMountedRef.current) return;
+                            setScanStatus("error");
+                            setScanMessage(fallbackMessage);
+                        })
+                        .finally(() => {
+                            timeoutRef.current = setTimeout(() => {
+                                if (!isMountedRef.current) return;
+                                setScanStatus("idle");
+                                setScanMessage(null);
+                                setScanResult(null);
+                                isProcessingRef.current = false;
+                            }, 2500);
+                        });
                 }
             },
             {
@@ -87,9 +110,14 @@ const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId, eventId }) =
             qrScannerRef.current.destroy();
             qrScannerRef.current = null;
         }
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        isProcessingRef.current = false;
         setScanResult(null);
-        setStatusMessage(null);
-        setIsError(false);
+        setScanMessage(null);
+        setScanStatus("idle");
     };
 
     return (
@@ -131,9 +159,9 @@ const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId, eventId }) =
                 <div>
                     <p>Scanned Result: {scanResult}</p>
 
-                    {statusMessage && (
-                        <div className={`status-message ${isError ? 'text-red-500' : 'text-green-500'}`}>
-                            {statusMessage}
+                    {scanMessage && (
+                        <div className={`status-message px-3 py-2 rounded-md ${scanStatus === "success" ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                            {scanMessage}
                         </div>
                     )}
 

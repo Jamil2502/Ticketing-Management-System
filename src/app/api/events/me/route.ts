@@ -12,9 +12,10 @@ export async function GET() {
         }
 
         const events = await db.execute(
-            sql`SELECT e.id, e.name, e.description, e.date, e.status, e.created_at, em.role, em.joined_at
+            sql`SELECT e.id, e.name, e.description, e.date, e.status, e.created_at, em.role, em.joined_at, t.isvalid, t.id AS ticketid
                 FROM events e
                 JOIN event_members em ON e.id = em.eventid
+                LEFT JOIN tickets t ON t.eventid = e.id AND t.userid = em.userid
                 WHERE em.userid = ${userId}
                 ORDER BY e.created_at DESC`
         );
