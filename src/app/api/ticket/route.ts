@@ -13,11 +13,15 @@ export async function POST(req: Request) {
 
         //if the ticket already exists
         const existingUser = await db.execute(
-            sql`SELECT id FROM ${ticketTable} WHERE userid = ${uid} AND eventid = ${eventId} LIMIT 1`
+            sql`SELECT id, isvalid FROM ${ticketTable} WHERE userid = ${uid} AND eventid = ${eventId} LIMIT 1`
         );
 
         if (existingUser.length > 0) {
-            return NextResponse.json({ error: "Ticket already exists for this event" }, { status: 400 });
+            const existingTicket = existingUser[0];
+            if (existingTicket.isvalid) {
+                return NextResponse.json({ message: "Existing ticket retrieved", ticketID: existingTicket.id });
+            }
+            return NextResponse.json({ error: "Ticket has already been used for this event" }, { status: 400 });
         }
 
         //inserting the new ticket
@@ -25,7 +29,7 @@ export async function POST(req: Request) {
             sql`INSERT INTO ${ticketTable} (id, title, userID, eventid, createdAt, isvalid) VALUES (${ticketID}, ${title}, ${uid}, ${eventId}, ${createdAt}, ${torf})`
         );
 
-        return NextResponse.json({ message: "Ticket added to database" });
+        return NextResponse.json({ message: "Ticket added to database", ticketID: ticketID });
 
     } catch (error: unknown) {
         console.error("API Error:", error);

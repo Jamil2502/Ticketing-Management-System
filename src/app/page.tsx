@@ -98,11 +98,13 @@ export default function HomePage() {
                 throw new Error(ticketData.error || "Failed to generate ticket")
             }
 
+            const finalTicketId = ticketData.ticketID || ticket
+
             const descRes = await fetch("./api/ticket_desc", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    descid: ticket,
+                    descid: finalTicketId,
                     hder: user.firstName,
                     descrip: eventName,
                     footer: user.lastName,
@@ -117,7 +119,7 @@ export default function HomePage() {
             }
 
             setSelectedEventTitle(eventName)
-            setTicketID(ticket)
+            setTicketID(finalTicketId)
         } catch (error) {
             console.error("Error generating ticket:", error)
             alert(error instanceof Error ? error.message : "Unable to generate ticket. Please try again.")
