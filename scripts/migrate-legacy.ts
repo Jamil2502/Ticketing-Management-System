@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { eventsTable, ticketTable, usersTable } from "../src/db/schema";
 
-config({ path: ".env.local" });
+config();
 
 const databaseUrl = process.env.DATABASE_URL;
 const migrationActorId = process.env.MIGRATION_ACTOR_ID;
