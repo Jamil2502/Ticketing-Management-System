@@ -95,12 +95,11 @@ export default function HomePage() {
             const ticketData = await ticketRes.json()
             console.log("Ticket Gen response:", ticketData)
 
-            const desc = `${ticket} ${eventName}`.trim()
             const descRes = await fetch("./api/ticket_desc", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    descid: desc,
+                    descid: ticket,
                     hder: user.firstName,
                     descrip: eventName,
                     footer: user.lastName,
