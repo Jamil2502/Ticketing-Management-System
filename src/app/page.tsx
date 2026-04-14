@@ -59,8 +59,7 @@ export default function HomePage() {
         try {
             setGeneratingEventId(eventId)
 
-            const email = user.primaryEmailAddress?.emailAddress || ""
-            const ticket = `${email}${user.id}`.trim()
+            const ticket = crypto.randomUUID()
             const formatDate = (date: Date = new Date()): string => {
                 const day = String(date.getDate()).padStart(2, "0")
                 const month = String(date.getMonth() + 1).padStart(2, "0")
