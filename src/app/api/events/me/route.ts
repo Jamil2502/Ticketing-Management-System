@@ -20,7 +20,9 @@ export async function GET() {
                 ORDER BY e.created_at DESC`
         );
 
-        const eventRows = (events as unknown as { rows: unknown[] }).rows;
+        const eventRows = Array.isArray(events)
+            ? events
+            : (events as unknown as { rows?: unknown[] }).rows ?? [];
 
         return NextResponse.json({ success: true, data: { events: eventRows }, events: eventRows });
     } catch {

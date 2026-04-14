@@ -9,7 +9,11 @@ export async function GET() {
             sql`SELECT id, name, date FROM events WHERE status = 'active'`
         );
 
-        return NextResponse.json({ success: true, data: { events }, events });
+        const eventRows = Array.isArray(events)
+            ? events
+            : (events as unknown as { rows?: unknown[] }).rows ?? [];
+
+        return NextResponse.json({ success: true, data: { events: eventRows }, events: eventRows });
     } catch {
         return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
     }

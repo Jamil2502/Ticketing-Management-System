@@ -25,7 +25,7 @@ export async function POST(req: Request) {
                 LIMIT 1`
         );
 
-        const authRows = (authCheck as unknown as { rows: { role: string }[] }).rows;
+        const authRows = authCheck as unknown as { role: string }[];
 
         if (authRows.length === 0) {
             return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
             sql`SELECT id, isvalid FROM ${ticketTable} WHERE id = ${ticketId} AND eventid = ${eventId} LIMIT 1`
         );
 
-        const ticketRows = (existingTicket as unknown as { rows: { id: string; isvalid: boolean | null }[] }).rows;
+        const ticketRows = existingTicket as unknown as { id: string; isvalid: boolean | null }[];
 
         if (ticketRows.length === 0) {
             return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });

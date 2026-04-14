@@ -27,7 +27,7 @@ export async function GET(
                 LIMIT 1`
         );
 
-        const authRows = (authCheck as unknown as { rows: { role: string }[] }).rows;
+        const authRows = authCheck as unknown as { role: string }[];
 
         if (authRows.length === 0) {
             return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
@@ -50,9 +50,9 @@ export async function GET(
             `),
         ]);
 
-        const eventRows = (eventData as unknown as { rows: { admin_code: string | null }[] }).rows;
-        const ticketRows = (ticketStats as unknown as { rows: { total_tickets?: string | number | null; scanned_tickets?: string | number | null }[] }).rows;
-        const memberRows = (membersData as unknown as { rows: { userid: string; role: string }[] }).rows;
+        const eventRows = eventData as unknown as { admin_code: string | null }[];
+        const ticketRows = ticketStats as unknown as { total_tickets?: string | number | null; scanned_tickets?: string | number | null }[];
+        const memberRows = membersData as unknown as { userid: string; role: string }[];
 
         if (eventRows.length === 0) {
             return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 });

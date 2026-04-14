@@ -17,12 +17,14 @@ export async function POST(req: Request) {
         );
 
         if (existingUser.length > 0) {
-            return NextResponse.json({ success: true, data: { message: "Description already exists" }, message: "Description already exists" });
+            return NextResponse.json({ success: true, data: { message: "Description already exists (no changes made)" }, message: "Description already exists (no changes made)" });
         }
 
         //inserting the new user
         await db.execute(
-            sql`INSERT INTO ${descriptionsTable} (id, header, description, footer) VALUES (${descid}, ${hder}, ${descrip}, ${footer})`
+            sql`INSERT INTO ${descriptionsTable} (id, header, description, footer)
+                VALUES (${descid}, ${hder}, ${descrip}, ${footer})
+                ON CONFLICT (id) DO NOTHING`
         );
 
         return NextResponse.json({ success: true, data: { message: "Description added to database" }, message: "Description added to database" });

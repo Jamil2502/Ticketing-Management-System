@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -20,11 +20,13 @@ export default function MyEventsPage() {
 
     const [events, setEvents] = useState<MyEvent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const hasFetchedOnLoad = useRef(false);
 
     const fetchMyEvents = async () => {
         const response = await fetch("/api/events/me");
-        if (!response.ok) throw new Error("Failed to fetch my events");
         const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || "Failed to fetch my events");
         setEvents(Array.isArray(data?.events) ? data.events : []);
     };
 
@@ -33,10 +35,14 @@ export default function MyEventsPage() {
     }, [isLoaded, isSignedIn, router]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!isLoaded || !isSignedIn || hasFetchedOnLoad.current) return;
+        hasFetchedOnLoad.current = true;
         setLoading(true);
-        fetchMyEvents().finally(() => setLoading(false));
-    }, [user]);
+        setError("");
+        fetchMyEvents()
+            .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to fetch my events"))
+            .finally(() => setLoading(false));
+    }, [isLoaded, isSignedIn]);
 
     return (
         <main className="mx-auto max-w-4xl px-6 pt-8 space-y-6">
@@ -44,6 +50,8 @@ export default function MyEventsPage() {
 
             {loading ? (
                 <p className="text-white/60 text-sm">Loading my events...</p>
+            ) : error ? (
+                <p className="text-red-300 text-sm">{error}</p>
             ) : events.length === 0 ? (
                 <p className="text-white/70">You have not joined any events yet.</p>
             ) : (

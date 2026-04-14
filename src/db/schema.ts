@@ -1,4 +1,4 @@
-import {boolean, integer, pgTable, primaryKey, unique, varchar} from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, primaryKey, unique, varchar } from "drizzle-orm/pg-core";
 
 
 export const usersTable = pgTable("users", {
@@ -28,7 +28,9 @@ export const eventsTable = pgTable("events", {
     createdBy: varchar("created_by", { length: 100 }).references(() => usersTable.id).notNull(),
     createdAt: varchar("created_at", { length: 100 }).notNull(),
     adminCode: varchar("admin_code", { length: 50 }).unique()
-})
+}, (table) => ({
+    createdByIdx: index("events_created_by_idx").on(table.createdBy)
+}))
 
 export const eventMembersTable = pgTable("event_members", {
     userId: varchar("userid", { length: 100 }).references(() => usersTable.id).notNull(),
@@ -36,7 +38,9 @@ export const eventMembersTable = pgTable("event_members", {
     role: varchar("role", { length: 20 }).notNull(),
     joinedAt: varchar("joined_at", { length: 100 }).notNull()
 }, (table) => ({
-    pk: primaryKey({ columns: [table.eventId, table.userId] })
+    pk: primaryKey({ columns: [table.eventId, table.userId] }),
+    userIdIdx: index("event_members_userid_idx").on(table.userId),
+    eventIdIdx: index("event_members_eventid_idx").on(table.eventId)
 }))
 
 export const ticketTable = pgTable("tickets", {
@@ -50,7 +54,9 @@ export const ticketTable = pgTable("tickets", {
     createdAt: varchar("createdat", {length: 100}).notNull(),
     scannedAt: varchar("scanned_at", {length: 100})
 }, (table) => ({
-    userEventUnique: unique().on(table.userId, table.eventId)
+    userEventUnique: unique().on(table.userId, table.eventId),
+    userIdIdx: index("tickets_userid_idx").on(table.userId),
+    eventIdIdx: index("tickets_eventid_idx").on(table.eventId)
 }))
 export const descriptionsTable = pgTable("descriptions", {
     id: varchar("id", {length: 100}).references(() => ticketTable.id).primaryKey(),

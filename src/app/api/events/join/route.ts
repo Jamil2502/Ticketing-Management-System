@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
             sql`SELECT id, name FROM events WHERE admin_code = ${adminCode} LIMIT 1`
         );
 
-        const eventRows = (existingEvent as unknown as { rows: { id: string; name: string }[] }).rows;
+        const eventRows = existingEvent as unknown as { id: string; name: string }[];
 
         if (eventRows.length === 0) {
             return NextResponse.json({ success: false, error: "Invalid admin code" }, { status: 404 });
