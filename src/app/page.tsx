@@ -23,6 +23,9 @@ export default function HomePage() {
     const [events, setEvents] = useState<{ id: string; name: string; date?: string; useLegacyFallback?: boolean }[]>([])
     const [eventsLoading, setEventsLoading] = useState(false)
     const [generatingEventId, setGeneratingEventId] = useState<string | null>(null)
+    const [adminSelectedEventId, setAdminSelectedEventId] = useState<string | null>(null)
+    const [adminSelectedEventName, setAdminSelectedEventName] = useState("")
+    const [adminUseLegacyFallback, setAdminUseLegacyFallback] = useState(false)
 
     const [studentExists, setStudentExists] = useState<boolean | null>(null)
 
@@ -203,11 +206,17 @@ export default function HomePage() {
                         .then((res) => res.json())
                         .then((adminData) => {
                             console.log("Admin Details Response:", adminData) // Optional debugging
-                            setLoading(false)
+                            fetchActiveEvents()
+                                .finally(() => {
+                                    setLoading(false)
+                                })
                         })
                         .catch((error) => {
                             console.error("Error in admin_details:", error)
-                            setLoading(false)
+                            fetchActiveEvents()
+                                .finally(() => {
+                                    setLoading(false)
+                                })
                         })
                 })
                 .catch((error) => {
@@ -341,6 +350,69 @@ export default function HomePage() {
     }
 
     if (user?.publicMetadata?.role === "admin") {
+        if (!adminSelectedEventId) {
+            return (
+                <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
+                    <BackgroundBeams className="opacity-50" />
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.7 }}
+                        className="relative z-10 flex flex-col items-center justify-center max-w-md w-full px-4"
+                    >
+                        <div className="bg-black/50 backdrop-blur-xl p-8 rounded-2xl border border-teal-500/20 shadow-[0_0_30px_rgba(20,184,166,0.15)] w-full">
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2, duration: 0.5 }}
+                                className="mb-6"
+                            >
+                                <h1 className="text-2xl font-bold mb-1 text-center text-white">Select Event to Manage</h1>
+                                <p className="text-white/70 text-center text-sm">
+                                    Choose an active event to scan tickets for
+                                </p>
+                            </motion.div>
+
+                            {eventsLoading ? (
+                                <div className="flex items-center justify-center p-8 bg-black/30 rounded-xl">
+                                    <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
+                                    <p className="ml-3 text-white">Loading events...</p>
+                                </div>
+                            ) : events.length === 0 ? (
+                                <div className="p-4 bg-black/30 rounded-xl border border-white/10">
+                                    <p className="text-white/80 text-center">No active events available right now.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {events.map((eventItem) => (
+                                        <div
+                                            key={eventItem.id}
+                                            className="p-4 bg-black/30 rounded-xl border border-white/10"
+                                        >
+                                            <p className="text-white font-semibold">{eventItem.name}</p>
+                                            {eventItem.date && (
+                                                <p className="text-white/60 text-sm mt-1">{eventItem.date}</p>
+                                            )}
+                                            <button
+                                                className="w-full mt-3 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-teal-500/20 transition-all duration-200"
+                                                onClick={() => {
+                                                    setAdminSelectedEventId(eventItem.id)
+                                                    setAdminSelectedEventName(eventItem.name)
+                                                    setAdminUseLegacyFallback(Boolean(eventItem.useLegacyFallback))
+                                                }}
+                                            >
+                                                Manage Event
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+            )
+        }
+
         return (
             <div className="relative h-screen w-full flex items-center justify-center bg-gradient-to-b from-black to-gray-900 overflow-hidden">
                 <BackgroundBeams className="opacity-50" />
@@ -354,6 +426,7 @@ export default function HomePage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
+                                <p className="text-white/60 text-sm">Managing: {adminSelectedEventName}</p>
                             </div>
                             <div className="flex items-center gap-3 bg-teal-900/30 p-2 rounded-xl border border-teal-500/20 self-start">
                                 <div className="bg-teal-500/20 p-1.5 rounded-lg">
@@ -366,6 +439,16 @@ export default function HomePage() {
                                     <p className="text-white/50 text-xs">Event Administrator</p>
                                 </div>
                             </div>
+                            <button
+                                className="text-white/70 hover:text-white text-sm px-3 py-1.5 border border-white/20 rounded-lg"
+                                onClick={() => {
+                                    setAdminSelectedEventId(null)
+                                    setAdminSelectedEventName("")
+                                    setAdminUseLegacyFallback(false)
+                                }}
+                            >
+                                Change Event
+                            </button>
                         </div>
                     </motion.div>
 
@@ -383,7 +466,10 @@ export default function HomePage() {
                                 </div>
                             </div>
                             <div className="flex-1 overflow-hidden p-3 min-h-0">
-                                <SimpleQRScanner adminId={user.id} />
+                                <SimpleQRScanner
+                                    adminId={user.id}
+                                    eventId={adminUseLegacyFallback ? undefined : adminSelectedEventId}
+                                />
                             </div>
                         </div>
                     </motion.div>

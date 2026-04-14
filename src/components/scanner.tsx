@@ -3,8 +3,9 @@ import QrScanner from 'qr-scanner';
 
 interface SimpleQRScannerProps {
     adminId?: string;
+    eventId?: string;
 }
-const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId }) => {
+const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId, eventId }) => {
     const [scanResult, setScanResult] = useState<string | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [isError, setIsError] = useState<boolean>(false);
@@ -41,10 +42,11 @@ const SimpleQRScanner: React.FC<SimpleQRScannerProps> = ({ adminId }) => {
                         fetch("./api/isscan_ticket", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                scannedData: result.data,
-                                adminId: adminId,
-                                }),
+                                body: JSON.stringify({
+                                    scannedData: result.data,
+                                    adminId: adminId,
+                                    eventId: eventId,
+                                    }),
                         })
                             .then(response => response.json())
                             .then(data => {
