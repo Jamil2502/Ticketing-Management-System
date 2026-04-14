@@ -13,11 +13,11 @@ export async function POST(req: Request) {
 
         //if the ticket already exists
         const existingUser = await db.execute(
-            sql`SELECT id FROM ${ticketTable} WHERE id = ${ticketID} AND eventid = ${eventId} LIMIT 1`
+            sql`SELECT id FROM ${ticketTable} WHERE userid = ${uid} AND eventid = ${eventId} LIMIT 1`
         );
 
         if (existingUser.length > 0) {
-            return NextResponse.json({ message: "Ticket already exists" });
+            return NextResponse.json({ error: "Ticket already exists for this event" }, { status: 400 });
         }
 
         //inserting the new ticket

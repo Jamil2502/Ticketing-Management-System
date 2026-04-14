@@ -94,6 +94,10 @@ export default function HomePage() {
             const ticketData = await ticketRes.json()
             console.log("Ticket Gen response:", ticketData)
 
+            if (!ticketRes.ok || ticketData.error) {
+                throw new Error(ticketData.error || "Failed to generate ticket")
+            }
+
             const descRes = await fetch("./api/ticket_desc", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -116,7 +120,7 @@ export default function HomePage() {
             setTicketID(ticket)
         } catch (error) {
             console.error("Error generating ticket:", error)
-            alert("Unable to generate ticket. Please try again.")
+            alert(error instanceof Error ? error.message : "Unable to generate ticket. Please try again.")
         } finally {
             setGeneratingEventId(null)
         }
