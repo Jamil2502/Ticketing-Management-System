@@ -1,89 +1,233 @@
-# Ticketing Management System
+# TicktFlow
 
-A simple, fast, and reliable QR-based event ticketing system built for college events. Students get tickets, admins scan them. Done. 
+## Overview
 
-## What's This About?
+TicktFlow is a full-stack event ticketing and access-control platform built with Next.js (App Router), Clerk authentication, and PostgreSQL via Drizzle ORM. It supports event creation, role-based participation, ticket generation, admin-code access, and QR-based entry validation through API-driven workflows.
 
-Ever had trouble managing event attendance? Yeah, we fixed that.
+## Features
 
-This app lets you:
-- **Students** create event tickets and generate QR codes
-- **Admins** scan QR codes with their phone to verify attendance
-- Keep everything organized in one place
+### User Features
 
-Perfect for annual fests, hackathons, seminars, or any event you're hosting.
+- View all active events
+- Complete student profile onboarding
+- Generate a ticket for an event
+- View joined events and ticket status
+- Display QR code for event entry
+
+### Admin Features
+
+- Create events with generated admin code
+- Join an event as admin via admin code
+- Access manager dashboard for each event
+- View total tickets, scanned tickets, and member roles
+- Scan and validate QR tickets at entry
+
+## Authentication
+
+Authentication and session management are handled by Clerk.
+
+- Client authentication state via `useUser()`
+- Route-level authorization checks in API handlers via `auth()`
+- Sign-in and sign-up routes:
+  - `/sign-in/[[...rest]]`
+  - `/sign-up/[[...sign-up]]`
+- Authorization model:
+  - Event roles (`creator`, `admin`, `member`) stored in `event_members`
+  - Role checks enforced in manager and scan APIs
+
+## System Architecture
+
+```text
+[Browser UI]
+    |
+    v
+[Next.js App Router Pages]
+    |
+    v
+[API Routes (/api/*)]
+    |
+    v
+[Drizzle ORM + Raw SQL]
+    |
+    v
+[PostgreSQL (Render)]
+```
+
+## Project Structure
+
+```text
+.
+├── src
+│   ├── app
+│   │   ├── api
+│   │   │   ├── events
+│   │   │   │   ├── [eventId]/manager/route.ts
+│   │   │   │   ├── join/route.ts
+│   │   │   │   ├── me/route.ts
+│   │   │   │   └── route.ts
+│   │   │   ├── ticket
+│   │   │   │   ├── scan/route.ts
+│   │   │   │   └── route.ts
+│   │   │   ├── ticket_desc/route.ts
+│   │   │   ├── sync-user/route.ts
+│   │   │   ├── get_student_id/route.ts
+│   │   │   └── student_details/route.ts
+│   │   ├── events
+│   │   │   ├── [eventId]/manager/page.tsx
+│   │   │   ├── me/page.tsx
+│   │   │   └── page.tsx
+│   │   ├── sign-in/[[...rest]]/page.tsx
+│   │   ├── sign-up/[[...sign-up]]/page.tsx
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── AppHeader.tsx
+│   │   ├── QrCode.tsx
+│   │   ├── scanner.tsx
+│   │   └── ui/background-beams.tsx
+│   ├── db
+│   │   └── schema.ts
+│   └── lib
+│       ├── db.ts
+│       ├── safeFetch.ts
+│       └── utils.ts
+├── drizzle.config.ts
+├── package.json
+└── .env.example
+```
+
+## Key Concepts
+
+### Role-Based Access
+
+- Event membership and privileges are stored in `event_members`
+- `creator` and `admin` can access management and ticket scanning
+- `member` can join and hold a valid event ticket
+- Unauthorized and forbidden access are handled with 401/403 API responses
+
+### Idempotent APIs
+
+- Join/admin membership upsert uses conflict-aware SQL
+- Ticket creation logic is conflict-safe and returns existing ticket when present
+- API response format is standardized as:
+  - `{ success: boolean, data?: any, error?: string }`
+
+### QR System
+
+- Ticket ID is encoded as QR payload
+- Scanner reads QR and calls `/api/ticket/scan`
+- Ticket validation updates:
+  - `isvalid = false`
+  - `scanned_by`
+  - `scanned_at`
+- Prevents reuse of already-scanned tickets
 
 ## Tech Stack
 
-- **Next.js 15** - React framework for modern web apps
-- **TypeScript** - Keeps our code safe and helpful
-- **PostgreSQL** (Render) - Database for storing everything
-- **Drizzle ORM** - Makes database queries clean and easy
-- **Clerk** - User authentication (sign in/sign up)
-- **Tailwind CSS** - Makes it look pretty
-- **QR Scanner** - Camera-based ticket scanning on mobile
+- Frontend: Next.js 15 (App Router), React 19, TypeScript
+- Styling: Tailwind CSS
+- Authentication: Clerk
+- Database: PostgreSQL (Render)
+- ORM/SQL Access: Drizzle ORM with raw SQL execution
+- QR: `qrcode.react`, `qr-scanner`
+- Tooling: ESLint, Drizzle Kit
 
+## Setup Instructions
 
-## How to Setup this Project 
+### 1) Clone
 
-### 1. Clone & Install
 ```bash
-git clone https://github.com/Jamil2502/Ticketing-Management-System.git
-cd Ticketing-Management-System
+git clone <your-repository-url>
+cd <your-repository-folder>
+```
+
+### 2) Install
+
+```bash
 npm install
 ```
 
-### 2. Set Up Environment
-Create `.env.local` in the root:
+### 3) Environment Variables
+
+Create `.env` (or `.env.local`) using `.env.example`:
+
 ```env
-DATABASE_URL=postgresql://user:password@host:port/dbname?sslmode=require
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key_here
-CLERK_SECRET_KEY=your_secret_here
+DATABASE_URL=
+MIGRATION_ACTOR_ID=
+CONFIRM_MIGRATION=
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
 CLERK_SIGN_IN_URL=/sign-in
 CLERK_SIGN_UP_URL=/sign-up
 CLERK_AFTER_SIGN_IN_URL=/
 CLERK_AFTER_SIGN_UP_URL=/
 ```
 
-Get these from:
-- **Database**: [Render.com](https://render.com)
-- **Clerk Keys**: [Clerk Dashboard](https://dashboard.clerk.com)
+### 4) Run Locally
 
-### 3. Push Database Schema
-```bash
-npx drizzle-kit push
-```
-
-### 4. Run It
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` 
+Open `http://localhost:3000`.
 
-## How to Use
+### 5) Optional: Push Schema
 
-### Student Side
-1. Sign up with your email
-2. Fill in college info (college name, stream, year)
-3. Create a new ticket for an event
-4. Get a QR code instantly
-5. Share it with the admin or show from your phone
+This project uses Drizzle schema push (not migration files):
 
-### Admin Side
-1. Sign up and ask to be made an admin (via Clerk dashboard - set `role: "admin"` in metadata)
-2. Go to admin dashboard
-3. Point phone camera at student's QR code
-4. Ticket gets validated ✓
+```bash
+npx drizzle-kit push
+```
 
-## Features
+## Deployment
 
-✅ User authentication with Clerk  
-✅ Role-based access (Student/Admin)  
-✅ QR code generation and scanning  
-✅ Real-time ticket validation  
-✅ Mobile-friendly design  
-✅ Fast and secure  
+Target environment: Render with PostgreSQL.
 
+- Ensure `DATABASE_URL` and Clerk keys are configured in Render environment variables
+- Build command:
 
-**Built with ❤️ for college events**
+```bash
+npm run build
+```
+
+- Start command:
+
+```bash
+npm run start
+```
+
+- The app start script binds to Render port via `next start -p $PORT`
+- Ensure database network access and SSL-compatible connection string
+
+## Challenges Faced
+
+- Drizzle `db.execute()` result shape inconsistency (`array` vs `.rows`) caused runtime failures
+- Missing database constraints caused `ON CONFLICT` failures at runtime
+- Intermittent frontend JSON parse failures when API returned HTML error pages
+- Duplicate frontend fetches increased perceived latency
+- Schema push conflicts required targeted SQL constraint/index fixes
+
+## Future Improvements
+
+- Multi-event tenancy hardening and event-scoped analytics
+- Dedicated migration workflow with consistent schema versioning
+- Server-side pagination/filtering for events and members
+- Observability: request tracing, slow-query logging, API metrics dashboard
+- Background jobs for ticket lifecycle and audit reporting
+- Automated integration tests for API role/permission matrix
+
+## Demo Flow
+
+1. User signs in with Clerk.
+2. Home page syncs user and checks/creates student profile.
+3. User navigates to `/events` and views active events.
+4. User generates a ticket for an event.
+5. Ticket appears in `/events/me` with QR code.
+6. Creator/admin opens manager dashboard for the event.
+7. Admin scans QR; API validates and marks ticket as used.
+
+## Project Summary
+
+TicktFlow demonstrates a production-style event ticketing workflow with strict API contracts, role-based authorization, and QR-based verification. It combines client-side UX safeguards with backend idempotency and relational data integrity to support reliable event operations.
